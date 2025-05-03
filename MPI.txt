@@ -51,6 +51,64 @@ public class Dist {
 }
 
 
+OR
+import mpi.*;
+
+public class Dist {
+    public static void main(String[] args) throws MPIException {
+        MPI.Init(args);
+
+        int rank = MPI.COMM_WORLD.Rank();
+        int size = MPI.COMM_WORLD.Size();
+
+        int[] array = null;
+        int n = 10;  // Total elements (can be any number)
+
+        if (rank == 0) {
+            array = new int[n];
+            for (int i = 0; i < n; i++) {
+                array[i] = i + 1;  // Fill array with 1 to n
+            }
+        }
+
+        // Step 1: Compute send counts and displacements
+        int[] sendCounts = new int[size];
+        int[] displacements = new int[size];
+        int baseSize = n / size;
+        int remainder = n % size;
+
+        for (int i = 0; i < size; i++) {
+            sendCounts[i] = baseSize + (i < remainder ? 1 : 0);
+            displacements[i] = (i == 0) ? 0 : displacements[i - 1] + sendCounts[i - 1];
+        }
+
+        int localN = sendCounts[rank];
+        int[] localArray = new int[localN];
+
+        // Scatter the variable-sized chunks
+        MPI.COMM_WORLD.Scatterv(array, 0, sendCounts, displacements, MPI.INT,
+                                localArray, 0, localN, MPI.INT, 0);
+
+        // Compute local sum
+        int localSum = 0;
+        for (int i = 0; i < localN; i++) {
+            localSum += localArray[i];
+        }
+
+        // Reduce local sums to total sum
+        int[] globalSum = new int[1];
+        MPI.COMM_WORLD.Reduce(new int[]{localSum}, 0, globalSum, 0, 1, MPI.INT, MPI.SUM, 0);
+
+        System.out.println("Processor " + rank + " calculated sum = " + localSum);
+
+        if (rank == 0) {
+            System.out.println("Total Sum = " + globalSum[0]);
+        }
+
+        MPI.Finalize();
+    }
+}
+
 
 
 
