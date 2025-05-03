@@ -1,0 +1,74 @@
+import mpi.*;  // Import MPI library
+
+public class Dist {
+    public static void main(String[] args) throws MPIException {
+        // Initialize the MPI environment
+        MPI.Init(args);
+
+        // Get the rank (ID) of this process
+        int rank = MPI.COMM_WORLD.Rank();
+
+        // Get the total number of processes
+        int size = MPI.COMM_WORLD.Size();
+
+        // Input array (only meaningful in process 0)
+        int[] array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        int n = array.length;
+
+        // Number of elements each process will handle
+        int localN = n / size;
+
+        // Buffer for each process to receive its chunk
+        int[] localArray = new int[localN];
+
+        // Scatter: distribute array elements to all processes
+        MPI.COMM_WORLD.Scatter(array, 0, localN, MPI.INT,
+                               localArray, 0, localN, MPI.INT, 0);
+
+        // Compute local sum
+        int localSum = 0;
+        for (int i = 0; i < localN; i++) {
+            localSum += localArray[i];
+        }
+
+        // Reduce: sum all local sums into global sum at process 0
+        int[] globalSum = new int[1];
+        MPI.COMM_WORLD.Reduce(new int[]{localSum}, 0,
+                              globalSum, 0, 1,
+                              MPI.INT, MPI.SUM, 0);
+
+        // Each process prints its own partial sum
+        System.out.println("Processor " + rank + " calculated sum = " + localSum);
+
+        // Only process 0 prints the total sum
+        if (rank == 0) {
+            System.out.println("Total Sum = " + globalSum[0]);
+        }
+
+        // Finalize the MPI environment
+        MPI.Finalize();
+    }
+}
+
+
+
+
+
+//install
+MPJ Express
+
+//tar -xvzf mpjexpress.tar.gz
+gedit ~/.bashrc  or nano ~/.bashrc
+export MPJ_HOME=/home/pvg/Downloads/mpj-v0_44 or export MPJ_HOME=$HOME/mpj/mpj-v0_44
+export PATH=$MPJ_HOME/bin:$PATH
+source ~/.bashrc
+javac -cp .:$MPJ_HOME/lib/mpj.jar Dist.java
+mpjrun.sh -np 2 Dist
+
+
+//find ~ -name mpj.jar 2>/dev/null
+javac -cp /home/pvg/Downloads/mpj-v0_44/lib/mpj.jar Dist.java
+/home/pvg/Downloads/mpj-v0_44/bin/mpjrun.sh -np 4 Dist
+
+or MPJ_HOME=/home/pvg/Downloads/mpj-v0_44 /home/pvg/Downloads/mpj-v0_44/bin/mpjrun.sh -np 4 Dist
+
