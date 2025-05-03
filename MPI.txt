@@ -159,6 +159,7 @@ int main(int argc, char* argv[]) {
 
 
 
+
 sudo apt update
 sudo apt install mpich -y
 mpic++ -o distributed_sum distributed_sum.cpp
